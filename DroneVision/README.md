@@ -1,4 +1,5 @@
-# Nautilus
+# DroneVision
+Tools to process annotated drone images
 
 ### Dependencies
 Install dependencies from python packages using pip
