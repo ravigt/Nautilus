@@ -1,4 +1,5 @@
-# Nautilus
+# DroneVision
+Tools to process annotated drone images
 
 ### Dependencies
 Install dependencies from python packages using pip
@@ -12,6 +13,8 @@ Use the images in data/images to create annotations using the coco annotator. Yo
 https://github.com/jsbroks/coco-annotator/wiki/Getting-Started
 
 ### Usage
+coco.py --> used to apply specific mask category on an image to generate masked image
+
 run coco.py using pycharm
 
 or
