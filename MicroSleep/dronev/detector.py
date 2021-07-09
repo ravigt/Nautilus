@@ -2,20 +2,21 @@ from abc import ABC, abstractmethod
 import cv2 as cv
 import numpy as np
 import dlib
+from dao import FaceLocation, Activity, FOCUSED, DISTRACTION
 
 
 class Detector(ABC):
 
     @abstractmethod
-    def face_localizer(self, frame):
+    def face_localizer(self, id, frame) -> FaceLocation:
         pass
 
     @abstractmethod
-    def classifier(self, region):
+    def classifier(self, frame_number, face_location: FaceLocation, frame) -> Activity:
         pass
 
 
-class DistractionDetector(Detector):
+class ActivityDetector(Detector):
 
     frame_w, frame_h = 0, 0
     hog_face_detector = None
@@ -24,15 +25,14 @@ class DistractionDetector(Detector):
         super().__init__()
         self.hog_face_detector = dlib.get_frontal_face_detector()
 
-    def face_localizer(self, frame):
+    def face_localizer(self, id, frame) -> FaceLocation:
         det = self.hog_face_detector(frame, 1)
         if len(det) != 1:
             return None
-        top_left = (det[0].left(), det[0].top())
-        bottom_right = (det[0].right(), det[0].bottom())
-        return top_left, bottom_right
+        return FaceLocation(frame_number=id, top_left=(det[0].left(), det[0].top()), bottom_right=(det[0].right(), det[0].bottom()))
 
-    def classifier(self, region):
-        pass
+    def classifier(self, frame_number, face_location, frame) -> Activity:
+        activity_type = DISTRACTION if face_location is None else FOCUSED
+        return Activity(frame_number=frame_number, type=activity_type, face_location=face_location)
 
 
