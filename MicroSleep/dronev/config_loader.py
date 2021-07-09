@@ -27,6 +27,7 @@ class LoadConfig:
 
         try:
             self.video_path = config['DATASOURCE']['video_path']
+            self.model_path = config['DATASOURCE']['model_path']
 
         except Exception as e:
             raise Exception("Error loading config. Error: {}".format(e))

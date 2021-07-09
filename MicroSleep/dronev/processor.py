@@ -9,7 +9,7 @@ if __name__ == '__main__':
     config = load_config("../config.ini")
 
     video_stream = cv.VideoCapture(config.video_path)
-    activity_detector = ActivityDetector()
+    activity_detector = ActivityDetector(config.model_path)
 
     frame_count = 0
     while video_stream.isOpened():
@@ -18,9 +18,13 @@ if __name__ == '__main__':
         activity = activity_detector.classifier(frame_count, face_location, frame)
 
         if activity.type == FOCUSED:
-            image = cv.rectangle(frame, activity.face_location.top_left, activity.face_location.bottom_right, (255, 0, 0), 2)
+            image = cv.rectangle(frame, (activity.face_location.rect.left(), activity.face_location.rect.top()),
+                                 (activity.face_location.rect.right(), activity.face_location.rect.bottom()),
+            (255, 0, 0), 2)
             cv.imshow("local view", image)
             cv.waitKey(1)
+            features = activity_detector.feature_extractor(frame_number=frame_count, face_location=activity.face_location, frame=frame)
+
         else:
             cv.imshow("local view", frame)
             cv.waitKey(1)
