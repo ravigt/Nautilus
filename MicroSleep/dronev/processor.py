@@ -26,7 +26,7 @@ if __name__ == '__main__':
                                  (face_location.rect.right(), face_location.rect.bottom()),
             (255, 0, 0), 2)
             cv.imshow("local view", image)
-            cv.waitKey(1)
+            cv.waitKey()
         else:
             # when the driver is distracted or looking out of the window
             cv.imshow("local view", frame)

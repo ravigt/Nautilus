@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import cv2 as cv
 import numpy as np
 import dlib
-from dao import FaceLocation, Activity, FOCUSED, DISTRACTION, SLEEPY
+from dao import FaceLocation, EyeMouth, Activity, FOCUSED, DISTRACTION, SLEEPY
 
 
 class Detector(ABC):
@@ -12,7 +12,7 @@ class Detector(ABC):
         pass
 
     @abstractmethod
-    def eye_state(self, frame_number, face_location, frame):
+    def eye_width_score(self, frame_number, eye_mouth: EyeMouth):
         pass
 
     @abstractmethod
@@ -48,12 +48,23 @@ class ActivityDetector(Detector):
             activity_type = DISTRACTION
             score = 1
         else:
-            r1, r2 = self.eye_state(frame_number, face_location, frame)
+            eye_mouth = self.eye_mouth_coordinates(frame_number, face_location, frame)
+            eye_width = self.eye_width_score(frame_number, eye_mouth)
             activity_type = FOCUSED
-            score = (r1+r2)/2
+            score = eye_width
         return Activity(frame_number=frame_number, type=activity_type, score=score)
 
-    def eye_state(self, frame_number, face_location: FaceLocation, frame):
+    def eye_mouth_coordinates(self, frame_number, face_location: FaceLocation, frame) -> EyeMouth:
+        points = self.landmark_extractor(frame, face_location.rect)
+        if points.num_parts != 68:
+            return None
+        left_eye_boundary = [points.part(37), points.part(38), points.part(39), points.part(40), points.part(41), points.part(42)]
+        right_eye_boundary = [points.part(43), points.part(44), points.part(45), points.part(46), points.part(47), points.part(48)]
+        mouth_boundary = [points.part(49), points.part(50), points.part(51), points.part(52), points.part(53), points.part(54), points.part(55),
+                          points.part(56), points.part(57), points.part(58), points.part(59), points.part(60)]
+        return EyeMouth(left_eye=left_eye_boundary, right_eye=right_eye_boundary, mouth=mouth_boundary)
+
+    def eye_width_score(self, frame_number, eye_mouth: EyeMouth):
         """
         This is a heuristic over and above a trained eye-detector
         It computes the ratio of distance of the upper eyelash and the lower eyelash to the width of the eye. This is computed for each eye
@@ -62,37 +73,23 @@ class ActivityDetector(Detector):
         anomaly detector should be built using the ratios.
 
         :param frame_number: the frame number that is being processed
-        :param face_location: the location of the face in the frame
-        :param frame: the grey scale version of the frame
-        :return: tuple of scores for the left eye and right eye
+        :param eye_mouth: the location of the face in the frame
+        :return: score for the eye width
         """
-        points = self.landmark_extractor(frame, face_location.rect)
-        if points.num_parts != 68:
-            return None
 
-        le_l = points.part(37)
-        le_t1 = points.part(38)
-        le_t2 = points.part(39)
-        le_r = points.part(40)
-        le_b2 = points.part(41)
-        le_b1 = points.part(42)
+        lec = eye_mouth.left_eye
+        rec = eye_mouth.right_eye
 
-        re_l = points.part(43)
-        re_t1 = points.part(44)
-        re_t2 = points.part(45)
-        re_r = points.part(46)
-        re_b2 = points.part(47)
-        re_b1 = points.part(48)
+        DL1 = np.sqrt((lec[1].x-lec[5].x)**2 + (lec[1].y - lec[5].y)**2)
+        DL2 = np.sqrt((lec[2].x-lec[4].x)**2 + (lec[2].y - lec[4].y)**2)
+        LEW = np.sqrt((lec[0].x-lec[3].x)**2 + (lec[0].y - lec[3].y)**2)
 
-        DL1 = np.sqrt((le_t1.x-le_b1.x)**2 + (le_t1.y - le_t2.y)**2)
-        DL2 = np.sqrt((le_t2.x-le_b2.x)**2 + (le_t2.y - le_t2.y)**2)
-        LEW = np.sqrt((le_l.x-le_r.x)**2 + (le_l.y - le_r.y)**2)
+        DR1 = np.sqrt((rec[1].x-rec[5].x)**2 + (rec[1].y - rec[5].y)**2)
+        DR2 = np.sqrt((rec[2].x-rec[4].x)**2 + (rec[2].y - rec[4].y)**2)
+        REW = np.sqrt((rec[0].x-rec[3].x)**2 + (rec[0].y - rec[3].y)**2)
 
-        DR1 = np.sqrt((re_t1.x-re_b1.x)**2 + (re_t1.y - re_t2.y)**2)
-        DR2 = np.sqrt((re_t2.x-re_b2.x)**2 + (re_t2.y - re_t2.y)**2)
-        REW = np.sqrt((re_l.x-re_r.x)**2 + (re_l.y - re_r.y)**2)
+        R1 = (DL1+DL2)/2
+        R2 = (DR1+DR2)/2
 
-        R1 = (DL1+DL2)/(2*LEW)
-        R2 = (DR1+DR2)/(2*REW)
-
-        return R1, R2
+        mean_eye_width = (R1+R2)/2
+        return mean_eye_width
