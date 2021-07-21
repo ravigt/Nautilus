@@ -1,6 +1,6 @@
 from config_loader import load_config
 import cv2 as cv
-from dao import FOCUSED, DISTRACTION, SLEEPY
+from dao import State, Activity
 
 from detector import ActivityDetector
 
@@ -18,9 +18,9 @@ if __name__ == '__main__':
             break
 
         face_location = activity_detector.face_localizer(frame_count, frame)
-        activity = activity_detector.detector(frame_count, face_location, frame)
+        activity: Activity = activity_detector.detector(frame_count, face_location, frame)
 
-        if activity.type == FOCUSED or activity.type == SLEEPY:
+        if activity.person_state == State.FOCUSED:
             # when the driver is looking straight
             image = cv.rectangle(frame, (face_location.rect.left(), face_location.rect.top()),
                                  (face_location.rect.right(), face_location.rect.bottom()),
@@ -33,6 +33,7 @@ if __name__ == '__main__':
             cv.waitKey(1)
 
         # the activity.score needs to be processed as a time series sequence to accurately the probability that the driver is drowsy/sleepy
-        print("Frame: {} Activity:{} Score:{}".format(activity.frame_number, activity.type, activity.score))
+        print("Frame: {} Person State:{} Eye Score:{} Mouth Score: {}".format(activity.frame_number, activity.person_state, activity.eye_score,
+                                                                              activity.mouth_score))
         frame_count += 1
 

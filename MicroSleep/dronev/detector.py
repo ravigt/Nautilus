@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import cv2 as cv
 import numpy as np
 import dlib
-from dao import FaceLocation, EyeMouth, Activity, FOCUSED, DISTRACTION, SLEEPY
+from dao import FaceLocation, EyeMouth, Activity, FOCUSED, DISTRACTION, State
 
 
 class Detector(ABC):
@@ -42,17 +42,19 @@ class ActivityDetector(Detector):
             return None
 
     def detector(self, frame_number, face_location, frame) -> Activity:
-        activity_type = FOCUSED
-        score = 1
-        if face_location is None:
-            activity_type = DISTRACTION
-            score = 1
-        else:
+        person_state = State.DISTRACTED
+        eye_mouth_state = State.UNK
+        eye_width_score = mouth_width_score = -1
+
+        if face_location is not None:
             eye_mouth = self.eye_mouth_coordinates(frame_number, face_location, frame)
-            eye_width = self.eye_width_score(frame_number, eye_mouth)
-            activity_type = FOCUSED
-            score = eye_width
-        return Activity(frame_number=frame_number, type=activity_type, score=score)
+            eye_width_score = self.eye_width_score(frame_number, eye_mouth)
+            mouth_width_score = self.mouth_width_score(frame_number, eye_mouth)
+            person_state = State.FOCUSED
+            eye_mouth_state = State.DETECTED
+
+        return Activity(frame_number=frame_number, person_state=person_state, eye_mouth_state=eye_mouth_state, eye_score=eye_width_score,
+                        mouth_score=mouth_width_score)
 
     def eye_mouth_coordinates(self, frame_number, face_location: FaceLocation, frame) -> EyeMouth:
         points = self.landmark_extractor(frame, face_location.rect)
@@ -91,5 +93,12 @@ class ActivityDetector(Detector):
         R1 = (DL1+DL2)/2
         R2 = (DR1+DR2)/2
 
-        mean_eye_width = (R1+R2)/2
-        return mean_eye_width
+        return (R1+R2)/2
+
+    def mouth_width_score(self, frame_number, eye_mouth: EyeMouth):
+        mouth = eye_mouth.mouth
+        DL1 = np.sqrt((mouth[2].x - mouth[10].x) ** 2 + (mouth[2].y - mouth[10].y) ** 2)
+        DL2 = np.sqrt((mouth[3].x - mouth[9].x) ** 2 + (mouth[3].y - mouth[9].y) ** 2)
+        DL3 = np.sqrt((mouth[4].x - mouth[8].x) ** 2 + (mouth[4].y - mouth[8].y) ** 2)
+
+        return (DL1+DL2+DL3)/3
