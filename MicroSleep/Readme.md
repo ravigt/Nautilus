@@ -1,6 +1,6 @@
 # Summary
-To detect drowsiness of drivers in low-light vehicular conditions
-[Approach is summarisez here](/notes.md)
+To detect drowsiness of drivers in low-light vehicular conditions [Approach is summarized here](notes.md)
+
 ##Instructions to run the code
 
 ### Main Dependencies
