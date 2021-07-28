@@ -34,5 +34,5 @@ landmark_extractor = dlib.shape_predictor(shape_detector_model_path)
 points = landmark_extractor(frame, face_location.rect)
 ```
 * once the landmarks are obtained get the sizes of eye and mouth. Read the code to see how it is done.
-* at this setage we get a time-series of the form `{frame:int, state:DISTRACTED|FOCUSED, mouth_size:float, eye_size:float}` 
+* at this stage we get a time-series of the form `{frame:int, state:DISTRACTED|FOCUSED, mouth_size:float, eye_size:float}` 
 * this time-series needs to be processed to detect the extent to which the driver is drowsy.
