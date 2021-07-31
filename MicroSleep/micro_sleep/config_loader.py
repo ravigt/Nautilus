@@ -27,7 +27,10 @@ class LoadConfig:
 
         try:
             self.video_path = config['DATASOURCE']['video_path']
-            self.model_path = config['DATASOURCE']['model_path']
+            self.face_model_path = config['DATASOURCE']['face_model_path']
+            self.video_file = config['DATASOURCE']['video_file']
+            self.estimator_model_path = config['DATASOURCE']['estimator_model_path']
+            self.activity_model_path = config['DATASOURCE']['activity_model_path']
 
         except Exception as e:
             raise Exception("Error loading config. Error: {}".format(e))

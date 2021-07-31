@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import cv2 as cv
 import numpy as np
 import dlib
-from dao import FaceLocation, EyeMouth, Activity, FOCUSED, DISTRACTION, State
+from micro_sleep.dao import FaceLocation, EyeMouth, Activity, State
 
 
 class Detector(ABC):
