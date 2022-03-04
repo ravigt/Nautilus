@@ -30,6 +30,11 @@ class ActivityDetector(Detector):
         super().__init__()
         self.hog_face_detector = dlib.get_frontal_face_detector()
         self.landmark_extractor = dlib.shape_predictor(shape_detector_model_path)
+        self.frame_size = (320, 240)
+
+    def scale_frame(self, frame):
+        resized = cv.resize(frame, self.frame_size, interpolation=cv.INTER_LINEAR)
+        return resized
 
     def face_localizer(self, frame_number, frame) -> FaceLocation:
         try:

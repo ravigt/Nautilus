@@ -24,10 +24,10 @@ if __name__ == '__main__':
         frame_count = 0
 
         while video_stream.isOpened():
-            ret, frame = video_stream.read()
-
-            if frame is None:
+            ret, orig_frame = video_stream.read()
+            if orig_frame is None:
                 break
+            frame = activity_model.scale_frame(orig_frame)
 
             face_location = activity_detector.face_localizer(frame_count, frame)
             activity: Activity = activity_detector.detector(frame_count, face_location, frame)

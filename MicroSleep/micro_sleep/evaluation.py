@@ -9,17 +9,18 @@ from micro_sleep.detector import ActivityDetector
 if __name__ == '__main__':
     config = load_config("../config.ini")
 
-    estimators: Estimators = joblib.load("eye_mouth_estimators.jl")
-    activity_detector = ActivityDetector(config.model_path)
+    estimators: Estimators = joblib.load(config.estimator_model_path)
+    activity_detector = ActivityDetector(config.face_model_path)
     video_stream = cv.VideoCapture(config.video_file)
 
     frame_count = 0
 
     while video_stream.isOpened():
-        ret, frame = video_stream.read()
+        ret, orig_frame = video_stream.read()
 
-        if frame is None:
+        if orig_frame is None:
             break
+        frame = estimators.scale_frame(orig_frame)
 
         face_location = activity_detector.face_localizer(frame_count, frame)
         activity: Activity = activity_detector.detector(frame_count, face_location, frame)
@@ -31,8 +32,17 @@ if __name__ == '__main__':
                                  (face_location.rect.right(), face_location.rect.bottom()),
                                  (255, 0, 0), 2)
             print(eye, mouth)
-            cv.imshow("local view", image)
-            cv.waitKey()
+
+            if eye < 0.04:
+                image = cv.putText(image, "Drowsy", (face_location.rect.right(), face_location.rect.bottom()), cv.FONT_HERSHEY_COMPLEX, 0.25, (0, 0,
+                                                                                                                                            255))
+                cv.imshow("local view", image)
+                cv.waitKey()
+            else:
+                cv.imshow("local view", image)
+
+                cv.waitKey(1)
+
         else:
             # when the driver is distracted or looking out of the window
             cv.imshow("local view", frame)

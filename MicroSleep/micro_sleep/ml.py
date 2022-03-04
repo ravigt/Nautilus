@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
-import matplotlib.pyplot as plt
+import cv2 as cv
 import joblib
 
 
@@ -12,9 +12,10 @@ class Estimators:
     eye: KernelDensity = None
     mouth: KernelDensity = None
 
-    def __init__(self, eye: KernelDensity, mouth: KernelDensity):
+    def __init__(self, frame_size, eye: KernelDensity, mouth: KernelDensity):
         self.eye = eye
         self.mouth = mouth
+        self.frame_size = frame_size
 
     def predict_prob(self, eye: list, mouth: list) -> (list, list):
         """
@@ -28,11 +29,20 @@ class Estimators:
 
         return pdf_eye, pdf_mouth
 
+    def scale_frame(self, frame):
+        resized = cv.resize(frame, self.frame_size, interpolation=cv.INTER_LINEAR)
+        return resized
+
 
 class ActivityModel:
     def __init__(self):
         self.event_list = list()
         self.estimators = {Estimator.EYE: None, Estimator.MOUTH: None}
+        self.frame_size = (320, 240)
+
+    def scale_frame(self, frame):
+        resized = cv.resize(frame, self.frame_size, interpolation=cv.INTER_LINEAR)
+        return resized
 
     def add_data(self, data: Activity):
         self.event_list.append(data)
@@ -86,7 +96,7 @@ class ActivityModel:
         return eye_prob, mouth_prob
 
     def save_estimators(self, file_name):
-        joblib.dump(Estimators(self.estimators[Estimator.EYE], self.estimators[Estimator.MOUTH]), file_name)
+        joblib.dump(Estimators(self.frame_size, self.estimators[Estimator.EYE], self.estimators[Estimator.MOUTH]), file_name)
 
     def get_event_list(self):
         return self.event_list
