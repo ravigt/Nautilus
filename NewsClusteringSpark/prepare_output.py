@@ -16,8 +16,8 @@ def load_data(sqc, file_path: str) -> dataframe:
 
 
 if __name__ == "__main__":
-    file_path = "small_data_10k.csv"
-    file_path_nearest_neighbours = "nearest_neighbour_parquet"
+    file_path = "/Users/raviguntur/Nautilus/DroneVision/news_clustering/data/small_data_10k.csv"
+    file_path_nearest_neighbours = "/Users/raviguntur/Nautilus/DroneVision/news_clustering/nearest_neighbour_full_vector"
 
     conf = SparkConf()
     conf.set("spark.executor.heartbeatInterval", "8000s")
@@ -50,4 +50,4 @@ if __name__ == "__main__":
     .withColumnRenamed('date', "Date") \
     .withColumnRenamed('popularity_score', "Popularity_Score") \
     .withColumnRenamed('nearest_neighbour', "Similar_News_Items_Comma_separated") \
-    .withColumnRenamed('scores', "Similarity_Scores_Comma_separated").toPandas().to_csv('result_data_10k.csv')
+    .withColumnRenamed('scores', "Similarity_Scores_Comma_separated").toPandas().to_csv('result_data_10k.csv', sep='|')

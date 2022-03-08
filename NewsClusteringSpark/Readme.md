@@ -1,16 +1,26 @@
 ## Approach
 - The solution is implemented as a knn match where n=2
-- to compare distances the `headline` `category` and `short description` columns of the csv file were chosen
+- to compare distances the `headline` `category` `popularity score` and `short description` columns of the csv file were chosen
+### comparison of vectors-1
 - distance is measured separately for the three columns. For `headline` and `short description` columns L2 norm was used as the distance . For
  `category` column absolute match was used as the distance measure.
  - the average of the L2 norm for the 2 text columns is the final distance
  - we can give different weightage to the 2 distances but it has not been done. However `category` was given the highest weightage. This means, if
   the `category` does not match the distance is infinite.
- 
- ## Feature generation
+### comparison of vectors-2
+- `headline` `category` `popularity score` and `short description` in vector form are concatenated to create one big vector. 
+- vectors are compared using a distance measure
+## Feature generation 
+### Feature generation-1
  - distilBERT was used as the pretrained language model
  - each text segment was separately converted into 798 dimensional embedding. this means for a given row, the `headline` and `short descriptions
  ` have their own embedding
+ ### Feature generation-2
+ - distilBERT was used as the pretrained language model
+ - each text segment was separately converted into 798 dimensional embedding. this means for a given row, the `headline` and `short descriptions
+ ` have their own embedding
+ - categories are converted to one-hot encoded vectors
+ - popularity score is min-max normalized
  ### Alternatives
  - a simpler approach is break to the text into a bag of words after skipping all the stop words. then use jaccard distance as the distance
   measure. This is memory efficient, proportional to the number of words. But this fails to capture semantic similarity.
@@ -31,7 +41,10 @@
   `category` and within each category group, implements a nxn distance computation keeping only the top 2 values. This means the parallelism is
    achieved at the `category` level. This is inefficient as `category` based groups are imbalanced. ```distance_computation()``` is better but
     would need a spark cluster. shuffles are inevitable
- 
+ - another distance computation function called ```distance_computation_v3()``` was also implemented. This function implements a nxn distance
+   computation keeping only the top 2 values. There is no parallelism.
+   . ```distance_computation()``` is better but
+    would need a spark cluster. shuffles are inevitable
  ## writing the output
  - owing to the heap size requirements, the dataframe created after the knn computations was written to a directory as .parquet files.
  - these parquet files were then stitched into the .csv file

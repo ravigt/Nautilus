@@ -1,7 +1,8 @@
 from pyspark import SparkContext, SparkConf, StorageLevel
 from pyspark.sql import SparkSession, dataframe
 from pyspark.sql import SQLContext
-from utils import TextProc, Bert
+from utils import TextProc, Bert, PreProc
+from pyspark.sql import functions as F
 
 
 def load_data(sqc, file_path: str) -> dataframe:
@@ -14,8 +15,8 @@ def load_data(sqc, file_path: str) -> dataframe:
 
 
 if __name__ == "__main__":
-    # file_path = "small_data_10k.csv"
-    file_path = "news_dataset.csv"
+    file_path = "/Users/raviguntur/Nautilus/DroneVision/news_clustering/data/small_data_10k.csv"
+    # file_path = "/Users/raviguntur/Nautilus/DroneVision/news_clustering/data/news_dataset.csv"
 
     conf = SparkConf()
     conf.set("spark.executor.heartbeatInterval", "80000s")
@@ -41,25 +42,34 @@ if __name__ == "__main__":
     # 1. load data from csv
     df = load_data(sql_context, file_path)
 
-    # 2. initialize bert model and TextProc
+    # 2. get the dimensionality for categories
+    category_dict = PreProc.get_categories(df, col='category')
+
+    # 3. initialize bert model and TextProc
     bert = Bert()
     text_proc = TextProc()
 
-    # 3. convert specific columns into their embeddings and drop columns not being used
-    df = df.select('ID', 'category', 'headline', 'short_description').repartition(100).persist(StorageLevel.DISK_ONLY_2)
+    # 4. convert specific columns into their embeddings and drop columns not being used
+    df = df.select('ID', 'category', 'popularity_score', 'headline', 'short_description')
     print("number of datapoints", df.count())
 
+    # 5. process categories, popularity_score fields, and text fields into vectorized form
+    df = PreProc.categories_to_onehot(df, 'category', category_dict)
+    df = PreProc.min_max(df, 'popularity_score')
     df_with_embedding = text_proc.text_to_embeddings(df,
                                                      bert.get_tokenizer(),
-                                                     bert.get_model()).repartition(100)
+                                                     bert.get_model())
 
-    # 4. drop raw text columns and keep only the embeddings columns
-    df_embeddings = df_with_embedding.select('ID', 'category', 'headline_embedding', 'short_description_embedding')
+    # 6. drop raw text columns and keep only the embeddings columns
+    df_embeddings = df_with_embedding.select('ID', 'category', 'category_one_hot', 'normalized_popularity_score', 'headline_embedding',
+                                             'short_description_embedding').persist(StorageLevel.DISK_ONLY_2)
 
-    # 5. compute the nearest neighbour matches
-    dist_calculated_df = text_proc.distance_computation_v2(df_embeddings).persist(StorageLevel.DISK_ONLY_2)
-    print("number of datapoints", dist_calculated_df.count())
+    # 7. compute the nearest neighbour matches
+    # dist_calculated_df = text_proc.distance_computation_v2(df_embeddings).persist(StorageLevel.DISK_ONLY_2)
+    # print("number of datapoints", dist_calculated_df.count())
 
-    # 6. store the ID field, and the corresponding nearest neighbours and scores in a parquet file
-    dist_calculated_df.write.parquet('nearest_neighbour_parquet_full')
+    dist_calculated_df = text_proc.distance_computation_v3(sql_context, df_embeddings).persist(StorageLevel.DISK_ONLY_2)
+
+    # 8. store the ID field, and the corresponding nearest neighbours and scores in a parquet file
+    dist_calculated_df.write.parquet('nearest_neighbour_full_vector')
 
